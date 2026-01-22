@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { FormData, formSchema, baseFormSchema, FormErrors, Gender, ParentOccupation } from './types';
 import { validateStep } from './utils/validation';
@@ -10,8 +9,8 @@ import Stepper from './components/Stepper';
 
 const STEPS = ['Siswa', 'Orang Tua', 'Berkas', 'Selesai'];
 
-// URL Web App Google Apps Script (PASTIKAN SUDAH DI-DEPLOY ULANG SETIAP ADA PERUBAHAN)
-const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbzM7b9j5JiDbCGecSbNszBV3ou5SzB0zxHJPsuTikJjtonz838K_Ntp2WYNFEdtQ6wl/exec'; 
+// URL Web App Google Apps Script
+const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbww_wq96s3LRbOI44W5RyPZt9Gchmnb7XfDVU6M7oTWQyshIc-TlZcpGKSWqAL3OmtA/exec'; 
 const LOGO_URL = 'https://github.com/smpbhumingasor/Formulir-Pendaftaran-SPMB-SMP-Bhumi-Ngasor/blob/161a2c73e9454d9f0046bae80d5f4dddc1553776/IMG-20260122-WA0025-removebg-preview.png?raw=true';
 
 const App: React.FC = () => {
@@ -45,8 +44,9 @@ const App: React.FC = () => {
     const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'success' | 'error' | 'server_error'>('idle');
     const [registrationId, setRegistrationId] = useState('');
 
-    // Kompresi Gambar: Diperlukan agar payload tidak melebihi 10MB (Limit Google Apps Script)
-    const compressImage = (file: File, maxWidth = 800, quality = 0.5): Promise<string> => {
+    // KOMPRESI SUPER RINGAN (Max 500px)
+    // Tujuannya agar server Google tidak timeout saat memproses 4 file sekaligus.
+    const compressImage = (file: File, maxWidth = 500, quality = 0.5): Promise<string> => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -91,8 +91,10 @@ const App: React.FC = () => {
 
     const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, files } = e.target;
-        if (files?.[0] && files[0].size > 10 * 1024 * 1024) {
-            alert("File terlalu besar! Maksimal 10MB.");
+        // Limit ketat 2MB agar Apps Script tidak crash
+        if (files?.[0] && files[0].size > 2 * 1024 * 1024) {
+            alert("File terlalu besar! Maksimal 2MB agar data bisa masuk ke server.");
+            e.target.value = '';
             return;
         }
         setFormData(prev => ({ ...prev, [name]: files?.[0] || null }));
@@ -121,7 +123,6 @@ const App: React.FC = () => {
         try {
             const id = `AR-RIDHO-${Date.now().toString().slice(-6)}`;
             
-            // Susun payload JSON yang akan dikirim
             const payload: any = {
                 fullName: formData.fullName,
                 nisn: formData.nisn,
@@ -139,16 +140,28 @@ const App: React.FC = () => {
             const processFile = async (field: keyof FormData, base64Key: string, mimeKey: string) => {
                 const file = formData[field] as File;
                 if (file) {
+                    let base64String = "";
                     if (file.type.startsWith('image/')) {
-                        payload[base64Key] = await compressImage(file);
+                        base64String = await compressImage(file);
                     } else {
-                        payload[base64Key] = await fileToBase64(file);
+                        base64String = await fileToBase64(file);
                     }
+                    
+                    // PENTING: Hapus prefix "data:image/jpeg;base64," agar payload lebih ringan
+                    // Server Google akan menerima raw base64 string
+                    const rawBase64 = base64String.includes('base64,') 
+                        ? base64String.split('base64,')[1] 
+                        : base64String;
+
+                    payload[base64Key] = rawBase64;
                     payload[mimeKey] = file.type;
+                } else {
+                    payload[base64Key] = "";
+                    payload[mimeKey] = "";
                 }
             };
 
-            // Proses semua dokumen pendukung
+            // Proses semua file secara paralel
             await Promise.all([
                 processFile('kartuKeluarga', 'kartuKeluargaBase64', 'kartuKeluargaMime'),
                 processFile('aktaKelahiran', 'aktaKelahiranBase64', 'aktaKelahiranMime'),
@@ -156,21 +169,26 @@ const App: React.FC = () => {
                 processFile('pasFoto', 'pasFotoBase64', 'pasFotoMime'),
             ]);
 
-            // Kirim ke Google Apps Script
-            await fetch(GOOGLE_SHEET_URL, {
+            // Kirim sebagai Text Plain JSON Raw
+            // Tambahkan timestamp di URL agar tidak kena cache browser
+            const noCacheUrl = `${GOOGLE_SHEET_URL}?t=${Date.now()}`;
+            
+            await fetch(noCacheUrl, {
                 method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'text/plain' },
+                mode: 'no-cors', 
+                headers: {
+                    'Content-Type': 'text/plain',
+                },
                 body: JSON.stringify(payload)
             });
 
-            // Beri waktu delay agar server Google sempat memproses file ke Drive
-            await new Promise(r => setTimeout(r, 6000));
+            // Beri waktu napas untuk server Google (8 detik)
+            await new Promise(r => setTimeout(r, 8000));
 
             setRegistrationId(id);
             setSubmissionStatus('success');
         } catch (err) {
-            console.error("Submission failed:", err);
+            console.error("Critical Error:", err);
             setSubmissionStatus('server_error');
         } finally {
             setIsSubmitting(false);
@@ -224,7 +242,7 @@ const App: React.FC = () => {
             <div className="min-h-screen bg-emerald-50/30 flex flex-col justify-center items-center p-6">
                  <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-xl border border-emerald-100 text-center">
                     <h2 className="text-3xl font-black text-emerald-900 mb-4">Pendaftaran Berhasil!</h2>
-                    <p className="text-slate-600 mb-8 leading-relaxed italic">Data <span className="font-bold uppercase">{formData.fullName}</span> telah berhasil dikirim ke server panitia.</p>
+                    <p className="text-slate-600 mb-8 leading-relaxed italic">Data <span className="font-bold uppercase">{formData.fullName}</span> telah dikirim ke server panitia.</p>
                     <div className="bg-slate-50 rounded-3xl p-6 mb-8 text-left border border-slate-200">
                         <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">ID Pendaftaran</p>
                         <p className="text-3xl font-mono font-black text-emerald-700">{registrationId}</p>
@@ -244,8 +262,8 @@ const App: React.FC = () => {
                 <div className="fixed inset-0 bg-white/95 backdrop-blur-md z-[100] flex flex-col items-center justify-center">
                     <div className="w-16 h-16 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin mb-6"></div>
                     <p className="text-emerald-800 font-black uppercase tracking-widest text-sm text-center">
-                        Sedang Mengirim & Mengunggah...<br/>
-                        <span className="text-[10px] font-normal normal-case text-slate-500 italic">Mohon tunggu 10-20 detik, sistem sedang memproses dokumen Anda.</span>
+                        Sedang Mengirim Data...<br/>
+                        <span className="text-[10px] font-normal normal-case text-slate-500 italic">Mohon tunggu, jangan tutup halaman ini.</span>
                     </p>
                 </div>
             )}
