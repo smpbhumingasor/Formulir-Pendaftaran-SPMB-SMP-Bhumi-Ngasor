@@ -8,8 +8,11 @@ import Stepper from './components/Stepper';
 
 const STEPS = ['Data Siswa', 'Orang Tua', 'Dokumen'];
 
-// URL Web App dari Google Apps Script Anda
-const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbx0mS1opZU9CLLdAj6NmBR3n2SHKG22hbmdznCbDhYii97cpl5jfA96v6yUKOoL6SO_/exec'; 
+/**
+ * PENTING: URL ini diambil dari screenshot deployment terakhir Anda.
+ * Pastikan Anda melakukan "New Deployment" setiap kali ada perubahan pada kode Apps Script.
+ */
+const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbx735fxNxtpWrxZVVXqYqkyPTmKA8CIpSUnserp_nxvLcvCOW-5Yj55mGFRID9Ttxg5/exec'; 
 
 const App: React.FC = () => {
     const initialFormData: FormData = {
@@ -45,7 +48,6 @@ const App: React.FC = () => {
         if (savedData) {
             try {
                 const parsed = JSON.parse(savedData);
-                // Kita tidak menyimpan file di localStorage, jadi biarkan null
                 setFormData(prev => ({ ...prev, ...parsed, kartuKeluarga: null, aktaKelahiran: null, ktpWalimurid: null, pasFoto: null }));
             } catch (e) { console.error(e); }
         }
@@ -113,34 +115,48 @@ const App: React.FC = () => {
         }
 
         setIsSubmitting(true);
+        setSubmissionStatus('idle');
+
         try {
             const payload: any = { ...formData };
 
-            // Konversi semua file yang diupload menjadi Base64 string
+            // Konversi file ke base64 secara paralel
+            const filePromises = [];
+            
             if (formData.kartuKeluarga instanceof File) {
-                payload.kartuKeluargaBase64 = await fileToBase64(formData.kartuKeluarga);
-                payload.kartuKeluargaMime = formData.kartuKeluarga.type;
+                filePromises.push(fileToBase64(formData.kartuKeluarga).then(base64 => {
+                    payload.kartuKeluargaBase64 = base64;
+                    payload.kartuKeluargaMime = (formData.kartuKeluarga as File).type;
+                }));
             }
             if (formData.aktaKelahiran instanceof File) {
-                payload.aktaKelahiranBase64 = await fileToBase64(formData.aktaKelahiran);
-                payload.aktaKelahiranMime = formData.aktaKelahiran.type;
+                filePromises.push(fileToBase64(formData.aktaKelahiran).then(base64 => {
+                    payload.aktaKelahiranBase64 = base64;
+                    payload.aktaKelahiranMime = (formData.aktaKelahiran as File).type;
+                }));
             }
             if (formData.ktpWalimurid instanceof File) {
-                payload.ktpWalimuridBase64 = await fileToBase64(formData.ktpWalimurid);
-                payload.ktpWalimuridMime = formData.ktpWalimurid.type;
+                filePromises.push(fileToBase64(formData.ktpWalimurid).then(base64 => {
+                    payload.ktpWalimuridBase64 = base64;
+                    payload.ktpWalimuridMime = (formData.ktpWalimurid as File).type;
+                }));
             }
             if (formData.pasFoto instanceof File) {
-                payload.pasFotoBase64 = await fileToBase64(formData.pasFoto);
-                payload.pasFotoMime = formData.pasFoto.type;
+                filePromises.push(fileToBase64(formData.pasFoto).then(base64 => {
+                    payload.pasFotoBase64 = base64;
+                    payload.pasFotoMime = (formData.pasFoto as File).type;
+                }));
             }
 
-            // Hapus objek File asli karena tidak bisa dikirim via JSON
+            await Promise.all(filePromises);
+
+            // Bersihkan objek File asli sebelum kirim JSON
             delete payload.kartuKeluarga;
             delete payload.aktaKelahiran;
             delete payload.ktpWalimurid;
             delete payload.pasFoto;
 
-            // Kirim ke Apps Script
+            // Kirim ke Google Apps Script menggunakan no-cors karena GAS sering redirect (302)
             await fetch(GOOGLE_SHEET_URL, {
                 method: 'POST',
                 mode: 'no-cors', 
@@ -149,6 +165,8 @@ const App: React.FC = () => {
                 body: JSON.stringify(payload)
             });
             
+            // Karena no-cors, kita tidak bisa baca response body, 
+            // namun jika fetch tidak melempar error, kita anggap sukses.
             setRegistrationId(`AR-RIDHO-${Date.now().toString().slice(-6)}`);
             setSubmissionStatus('success');
             localStorage.removeItem('spmb_2026_data');
@@ -247,7 +265,12 @@ const App: React.FC = () => {
                             </div>
                             <div className="w-full sm:w-auto order-1 sm:order-2 flex flex-col items-center gap-4">
                                 {submissionStatus === 'error' && <p className="text-xs font-bold text-red-500 bg-red-50 px-4 py-2 rounded-full animate-bounce">Mohon lengkapi kolom bertanda merah!</p>}
-                                {submissionStatus === 'server_error' && <p className="text-xs font-bold text-red-500">Terjadi kesalahan teknis. Coba lagi nanti.</p>}
+                                {submissionStatus === 'server_error' && (
+                                    <div className="text-center">
+                                        <p className="text-xs font-bold text-red-500">Gagal mengirim data.</p>
+                                        <p className="text-[10px] text-slate-400">Pastikan URL Apps Script sudah benar & izin akses diset ke 'Anyone'.</p>
+                                    </div>
+                                )}
                                 
                                 {currentStep < STEPS.length ? (
                                     <button 
@@ -263,7 +286,7 @@ const App: React.FC = () => {
                                         disabled={isSubmitting} 
                                         className="w-full sm:w-auto py-4 px-12 rounded-2xl text-white bg-emerald-600 hover:bg-emerald-700 font-bold shadow-lg shadow-emerald-200 disabled:opacity-50 transition-all active:scale-95"
                                     >
-                                        {isSubmitting ? 'Memproses...' : 'Kirim Pendaftaran'}
+                                        {isSubmitting ? 'Mengunggah Data...' : 'Kirim Pendaftaran'}
                                     </button>
                                 )}
                             </div>
@@ -274,7 +297,7 @@ const App: React.FC = () => {
                 <footer className="mt-12 text-center">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-loose">
                         SMP Bhumi Ngasor Ar-Ridho &copy; 2026<br/>
-                        Jl. Ngasor No. 123, Indonesia • Panitia SPMB Online
+                        Jl. Pendopo Kamulyan Bakalan Rt.01 Rw.02 Bakalan-Bululawang • Panitia SPMB Online
                     </p>
                 </footer>
             </div>
