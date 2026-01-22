@@ -14,6 +14,8 @@ const STEPS = ['Data Siswa', 'Orang Tua', 'Dokumen'];
  */
 const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbx735fxNxtpWrxZVVXqYqkyPTmKA8CIpSUnserp_nxvLcvCOW-5Yj55mGFRID9Ttxg5/exec'; 
 
+const LOGO_URL = 'https://github.com/smpbhumingasor/Formulir-Pendaftaran-SPMB-SMP-Bhumi-Ngasor/blob/161a2c73e9454d9f0046bae80d5f4dddc1553776/IMG-20260122-WA0025-removebg-preview.png?raw=true';
+
 const App: React.FC = () => {
     const initialFormData: FormData = {
         fullName: '',
@@ -180,11 +182,12 @@ const App: React.FC = () => {
 
     const Logo = () => (
         <div className="flex flex-col items-center">
-            <div className="bg-emerald-600 p-4 rounded-3xl shadow-xl mb-4 transform hover:rotate-3 transition-transform">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 14l9-5-9-5-9 5 9 5z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-                </svg>
+            <div className="bg-white p-2 rounded-3xl shadow-xl mb-4 transform hover:scale-105 transition-transform overflow-hidden border border-emerald-100">
+                <img 
+                    src={LOGO_URL} 
+                    alt="Logo SMP Bhumi Ngasor Ar-Ridho" 
+                    className="h-20 w-20 object-contain"
+                />
             </div>
             <h1 className="text-3xl font-black text-slate-800 tracking-tight text-center">SPMB 2026/2027</h1>
             <p className="text-emerald-700 font-bold uppercase tracking-[0.2em] text-[10px] mt-2 bg-emerald-50 px-3 py-1 rounded-full">SMP Bhumi Ngasor Ar-Ridho</p>
@@ -196,10 +199,12 @@ const App: React.FC = () => {
             <div className="min-h-screen bg-emerald-50/30 flex flex-col justify-center items-center p-6 animate-in fade-in duration-700">
                  <div className="bg-white p-8 sm:p-12 rounded-[2.5rem] shadow-2xl w-full max-w-xl border border-emerald-100 text-center relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-2 bg-emerald-500"></div>
-                    <div className="mx-auto flex items-center justify-center h-24 w-24 rounded-full bg-emerald-100 mb-8">
-                        <svg className="h-14 w-14 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                        </svg>
+                    <div className="mx-auto flex items-center justify-center h-24 w-24 rounded-full bg-emerald-100 mb-8 overflow-hidden">
+                        <img 
+                            src={LOGO_URL} 
+                            alt="Logo Sukses" 
+                            className="h-20 w-20 object-contain"
+                        />
                     </div>
                     <h2 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">Alhamdulillah, Berhasil!</h2>
                     <p className="text-slate-600 mb-8 leading-relaxed">
