@@ -6,14 +6,16 @@ const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const ALLOWED_DOCUMENT_TYPES = [...ALLOWED_IMAGE_TYPES, 'application/pdf'];
 
-// Helper function for file validation schema
-const fileSchema = (message: string) => z.instanceof(File, { message })
-    .refine(file => !file || file.size <= MAX_FILE_SIZE, `Ukuran file maksimal 2MB.`)
-    .refine(file => !file || ALLOWED_DOCUMENT_TYPES.includes(file.type), '.pdf, .jpg, .png, or .webp files are accepted.');
+// Helper function for required file validation
+const requiredFileSchema = (message: string) => z.instanceof(File, { message })
+    .refine(file => file.size > 0, message)
+    .refine(file => file.size <= MAX_FILE_SIZE, `Ukuran file maksimal 2MB.`)
+    .refine(file => ALLOWED_DOCUMENT_TYPES.includes(file.type), 'Format file harus PDF, JPG, atau PNG.');
 
-const imageFileSchema = (message: string) => z.instanceof(File, { message })
-    .refine(file => !file || file.size <= MAX_FILE_SIZE, `Ukuran file maksimal 2MB.`)
-    .refine(file => !file || ALLOWED_IMAGE_TYPES.includes(file.type), '.jpg, .png, or .webp files are accepted.');
+const requiredImageSchema = (message: string) => z.instanceof(File, { message })
+    .refine(file => file.size > 0, message)
+    .refine(file => file.size <= MAX_FILE_SIZE, `Ukuran file maksimal 2MB.`)
+    .refine(file => ALLOWED_IMAGE_TYPES.includes(file.type), 'Format foto harus JPG, PNG, atau WEBP.');
 
 
 // --- Enums ---
@@ -35,7 +37,6 @@ export enum ParentOccupation {
 }
 
 // --- Zod Schema ---
-// Base schema without refinements to keep .shape accessible
 export const baseFormSchema = z.object({
     // Step 1: Student Data
     fullName: z.string().min(1, 'Nama lengkap wajib diisi'),
@@ -55,11 +56,11 @@ export const baseFormSchema = z.object({
     motherOccupationOther: z.string().optional(),
     parentWaNumber: z.string().regex(/^(\+62|62|0)8[1-9][0-9]{7,11}$/, 'No. WA tidak valid, contoh: 08123456789'),
 
-    // Step 3: Document Upload
-    kartuKeluarga: z.any().optional(), // Handled manually or via refinement if needed
-    aktaKelahiran: z.any().optional(),
-    ktpWalimurid: z.any().optional(),
-    pasFoto: z.any().optional(),
+    // Step 3: Document Upload (SEKARANG WAJIB)
+    kartuKeluarga: requiredFileSchema('File Kartu Keluarga wajib diunggah'),
+    aktaKelahiran: requiredFileSchema('File Akta Kelahiran wajib diunggah'),
+    ktpWalimurid: requiredFileSchema('File KTP Wali Murid wajib diunggah'),
+    pasFoto: requiredImageSchema('Pas Foto wajib diunggah'),
 });
 
 // Refined schema for full validation

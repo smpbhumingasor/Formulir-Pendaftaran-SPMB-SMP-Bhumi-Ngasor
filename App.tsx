@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { FormData, formSchema, baseFormSchema, FormErrors, Gender, ParentOccupation } from './types';
 import { validateStep } from './utils/validation';
@@ -32,10 +33,10 @@ const App: React.FC = () => {
         motherOccupation: ParentOccupation.IRT,
         motherOccupationOther: '',
         parentWaNumber: '',
-        kartuKeluarga: null,
-        aktaKelahiran: null,
-        ktpWalimurid: null,
-        pasFoto: null,
+        kartuKeluarga: null as any,
+        aktaKelahiran: null as any,
+        ktpWalimurid: null as any,
+        pasFoto: null as any,
     };
 
     const [currentStep, setCurrentStep] = useState(1);
@@ -50,6 +51,7 @@ const App: React.FC = () => {
         if (savedData) {
             try {
                 const parsed = JSON.parse(savedData);
+                // We keep text data but reset files because Files cannot be stringified/parsed easily from localStorage
                 setFormData(prev => ({ ...prev, ...parsed, kartuKeluarga: null, aktaKelahiran: null, ktpWalimurid: null, pasFoto: null }));
             } catch (e) { console.error(e); }
         }
@@ -71,7 +73,15 @@ const App: React.FC = () => {
         const { name, files } = e.target;
         const file = files?.[0] || null;
         setFormData(prev => ({ ...prev, [name]: file }));
-    }, []);
+        // Clear error when file is selected
+        if (errors[name as keyof FormErrors]) {
+            setErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[name as keyof FormErrors];
+                return newErrors;
+            });
+        }
+    }, [errors]);
 
     const handleBlur = useCallback((e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name } = e.target;
@@ -109,10 +119,18 @@ const App: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        
+        // Proteksi Tambahan: Jangan biarkan submit kecuali di langkah terakhir
+        if (currentStep !== STEPS.length) {
+            handleNext();
+            return;
+        }
+
         const result = formSchema.safeParse(formData);
         if (!result.success) {
             setErrors(result.error.flatten().fieldErrors as FormErrors);
             setSubmissionStatus('error');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             return;
         }
 
@@ -158,7 +176,7 @@ const App: React.FC = () => {
             delete payload.ktpWalimurid;
             delete payload.pasFoto;
 
-            // Kirim ke Google Apps Script menggunakan no-cors karena GAS sering redirect (302)
+            // Kirim ke Google Apps Script
             await fetch(GOOGLE_SHEET_URL, {
                 method: 'POST',
                 mode: 'no-cors', 
@@ -167,8 +185,6 @@ const App: React.FC = () => {
                 body: JSON.stringify(payload)
             });
             
-            // Karena no-cors, kita tidak bisa baca response body, 
-            // namun jika fetch tidak melempar error, kita anggap sukses.
             setRegistrationId(`AR-RIDHO-${Date.now().toString().slice(-6)}`);
             setSubmissionStatus('success');
             localStorage.removeItem('spmb_2026_data');
@@ -269,7 +285,7 @@ const App: React.FC = () => {
                                 )}
                             </div>
                             <div className="w-full sm:w-auto order-1 sm:order-2 flex flex-col items-center gap-4">
-                                {submissionStatus === 'error' && <p className="text-xs font-bold text-red-500 bg-red-50 px-4 py-2 rounded-full animate-bounce">Mohon lengkapi kolom bertanda merah!</p>}
+                                {submissionStatus === 'error' && <p className="text-xs font-bold text-red-500 bg-red-50 px-4 py-2 rounded-full animate-bounce">Mohon lengkapi seluruh data dan dokumen!</p>}
                                 {submissionStatus === 'server_error' && (
                                     <div className="text-center">
                                         <p className="text-xs font-bold text-red-500">Gagal mengirim data.</p>
