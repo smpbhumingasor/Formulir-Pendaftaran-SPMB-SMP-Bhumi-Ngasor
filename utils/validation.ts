@@ -1,11 +1,18 @@
+
 import { formSchema, FormData, FormErrors } from '../types';
 
 // Mapping fields to steps for partial validation
+// Step 1: Survey
+// Step 2: Student
+// Step 3: Parent
+// Step 4: Docs
+// Step 5: Review/Terms
 const STEP_FIELDS: Record<number, Extract<keyof FormData, string>[]> = {
-    1: ['fullName', 'birthPlace', 'birthDate', 'address', 'previousSchool', 'nisn', 'gender'],
-    2: ['fatherName', 'fatherOccupation', 'fatherOccupationOther', 'motherName', 'motherOccupation', 'motherOccupationOther', 'parentWaNumber'],
-    3: ['kartuKeluarga', 'aktaKelahiran', 'ktpWalimurid', 'pasFoto'],
-    4: ['termsAgreed'],
+    1: ['infoSource'],
+    2: ['fullName', 'birthPlace', 'birthDate', 'address', 'previousSchool', 'nisn', 'gender'],
+    3: ['fatherName', 'fatherOccupation', 'fatherOccupationOther', 'motherName', 'motherOccupation', 'motherOccupationOther', 'parentWaNumber'],
+    4: ['kartuKeluarga', 'aktaKelahiran', 'ktpWalimurid', 'pasFoto'],
+    5: ['termsAgreed'],
 };
 
 export const validateStep = (step: number, formData: FormData): { success: boolean, errors: FormErrors } => {

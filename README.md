@@ -1,20 +1,38 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
 
-# Run and deploy your AI Studio app
+# 🎓 SPMB Online - SMP Bhumi Ngasor Ar-Ridho 2026/2027
 
-This contains everything you need to run your app locally.
+Aplikasi formulir Pendaftaran Peserta Didik Baru (PPDB/SPMB) berbasis web modern.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1Vfo4kstEk_5Vqq8rdj6l2eBgfzWOzkv-
+## ✨ Pembaruan Penting
+1.  **Deteksi Offline:** Aplikasi kini memberi peringatan jika koneksi internet terputus.
+2.  **Struktur Data:** Kolom Tempat Lahir dan Tanggal Lahir kini dipisah di Spreadsheet.
 
-## Run Locally
+## ⚙️ Panduan Update Google Apps Script
 
-**Prerequisites:**  Node.js
+1.  Copy kode dari `backend/Code.gs` ke editor Apps Script.
+2.  Deploy New Version.
 
+### 📊 Struktur Kolom Spreadsheet (Terbaru)
+Urutan header kolom spreadsheet yang direkomendasikan:
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+1.  Waktu Input
+2.  ID Pendaftaran
+3.  Sumber Informasi (Survey)
+4.  Nama Lengkap
+5.  NISN
+6.  Jenis Kelamin
+7.  **Tempat Lahir** (Baru: Dipisah)
+8.  **Tanggal Lahir** (Baru: Dipisah)
+9.  Alamat
+10. Sekolah Asal
+11. Nama Ayah
+12. Pekerjaan Ayah
+13. Nama Ibu
+14. Pekerjaan Ibu
+15. No. WA Ortu
+16. Link Kartu Keluarga
+17. Link Akta Kelahiran
+18. Link KTP Wali
+19. Link Pas Foto
+
+---

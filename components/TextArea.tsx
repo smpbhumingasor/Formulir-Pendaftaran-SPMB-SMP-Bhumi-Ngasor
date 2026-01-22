@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface TextAreaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -20,7 +21,8 @@ const TextArea: React.FC<TextAreaProps> = ({ label, id, error, ...props }) => {
                     id={id}
                     rows={3}
                     {...props}
-                    className={`block w-full px-4 py-3 border rounded-xl shadow-sm placeholder-slate-400 focus:outline-none sm:text-sm transition-all ${errorMsg ? errorClass : defaultClass}`}
+                    // text-base pada mobile mencegah zoom otomatis di iOS
+                    className={`block w-full px-4 py-3 border rounded-xl shadow-sm placeholder-slate-400 focus:outline-none text-base sm:text-sm transition-all ${errorMsg ? errorClass : defaultClass}`}
                     aria-invalid={!!errorMsg}
                     aria-describedby={errorMsg ? `${id}-error` : undefined}
                 />

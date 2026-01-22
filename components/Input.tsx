@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -19,7 +20,8 @@ const Input: React.FC<InputProps> = ({ label, id, error, ...props }) => {
                 <input
                     id={id}
                     {...props}
-                    className={`block w-full px-4 py-3 border rounded-xl shadow-sm placeholder-slate-400 focus:outline-none sm:text-sm transition-all ${errorMsg ? errorClass : defaultClass}`}
+                    // text-base pada mobile mencegah zoom otomatis di iOS, sm:text-sm mengembalikan ke ukuran kecil di desktop
+                    className={`block w-full px-4 py-3 border rounded-xl shadow-sm placeholder-slate-400 focus:outline-none text-base sm:text-sm transition-all ${errorMsg ? errorClass : defaultClass}`}
                     aria-invalid={!!errorMsg}
                     aria-describedby={errorMsg ? `${id}-error` : undefined}
                 />

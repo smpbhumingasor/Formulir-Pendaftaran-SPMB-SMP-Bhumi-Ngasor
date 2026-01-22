@@ -41,7 +41,10 @@ export const baseFormSchema = z.object({
     // Security Field (Honeypot) - Should be empty
     botField: z.string().optional(),
 
-    // Step 1: Student Data
+    // Step 1: Survey (New)
+    infoSource: z.array(z.string()).min(1, 'Mohon pilih setidaknya satu sumber informasi.'),
+
+    // Step 2: Student Data
     fullName: z.string().min(1, 'Nama lengkap wajib diisi'),
     birthPlace: z.string().min(1, 'Tempat lahir wajib diisi'),
     birthDate: z.string().min(1, 'Tanggal lahir wajib diisi'),
@@ -50,7 +53,7 @@ export const baseFormSchema = z.object({
     nisn: z.string().regex(/^\d{10}$/, 'NISN harus terdiri dari 10 digit angka'),
     gender: z.nativeEnum(Gender),
     
-    // Step 2: Parent Data
+    // Step 3: Parent Data
     fatherName: z.string().min(1, 'Nama ayah wajib diisi'),
     fatherOccupation: z.nativeEnum(ParentOccupation),
     fatherOccupationOther: z.string().optional(),
@@ -59,13 +62,13 @@ export const baseFormSchema = z.object({
     motherOccupationOther: z.string().optional(),
     parentWaNumber: z.string().regex(/^(\+62|62|0)8[1-9][0-9]{7,11}$/, 'No. WA tidak valid, contoh: 08123456789'),
 
-    // Step 3: Document Upload
+    // Step 4: Document Upload
     kartuKeluarga: requiredFileSchema('File Kartu Keluarga wajib diunggah'),
     aktaKelahiran: requiredFileSchema('File Akta Kelahiran wajib diunggah'),
     ktpWalimurid: requiredFileSchema('File KTP Wali Murid wajib diunggah'),
     pasFoto: requiredImageSchema('Pas Foto wajib diunggah'),
 
-    // Step 4: Final Confirmation
+    // Step 5: Final Confirmation
     termsAgreed: z.boolean().refine(val => val === true, "Anda harus menyetujui pernyataan kebenaran data"),
 });
 
