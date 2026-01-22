@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { FormData, formSchema, baseFormSchema, FormErrors, Gender, ParentOccupation } from './types';
 import { validateStep } from './utils/validation';
@@ -45,7 +46,6 @@ const App: React.FC = () => {
     const [registrationId, setRegistrationId] = useState('');
 
     // KOMPRESI SUPER RINGAN (Max 500px)
-    // Tujuannya agar server Google tidak timeout saat memproses 4 file sekaligus.
     const compressImage = (file: File, maxWidth = 500, quality = 0.5): Promise<string> => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -147,8 +147,6 @@ const App: React.FC = () => {
                         base64String = await fileToBase64(file);
                     }
                     
-                    // PENTING: Hapus prefix "data:image/jpeg;base64," agar payload lebih ringan
-                    // Server Google akan menerima raw base64 string
                     const rawBase64 = base64String.includes('base64,') 
                         ? base64String.split('base64,')[1] 
                         : base64String;
@@ -161,7 +159,6 @@ const App: React.FC = () => {
                 }
             };
 
-            // Proses semua file secara paralel
             await Promise.all([
                 processFile('kartuKeluarga', 'kartuKeluargaBase64', 'kartuKeluargaMime'),
                 processFile('aktaKelahiran', 'aktaKelahiranBase64', 'aktaKelahiranMime'),
@@ -169,20 +166,15 @@ const App: React.FC = () => {
                 processFile('pasFoto', 'pasFotoBase64', 'pasFotoMime'),
             ]);
 
-            // Kirim sebagai Text Plain JSON Raw
-            // Tambahkan timestamp di URL agar tidak kena cache browser
             const noCacheUrl = `${GOOGLE_SHEET_URL}?t=${Date.now()}`;
             
             await fetch(noCacheUrl, {
                 method: 'POST',
                 mode: 'no-cors', 
-                headers: {
-                    'Content-Type': 'text/plain',
-                },
+                headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify(payload)
             });
 
-            // Beri waktu napas untuk server Google (8 detik)
             await new Promise(r => setTimeout(r, 8000));
 
             setRegistrationId(id);
@@ -251,6 +243,25 @@ const App: React.FC = () => {
                         <button onClick={() => window.print()} className="w-full py-4 rounded-2xl text-emerald-700 bg-white border-2 border-emerald-100 font-bold">Cetak Bukti</button>
                         <button onClick={() => window.location.reload()} className="w-full py-4 rounded-2xl text-white bg-emerald-600 font-bold">Daftarkan Siswa Lain</button>
                     </div>
+                 </div>
+            </div>
+        );
+    }
+
+    if (submissionStatus === 'server_error') {
+        return (
+             <div className="min-h-screen bg-red-50/50 flex flex-col justify-center items-center p-6">
+                 <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-xl border border-red-100 text-center">
+                    <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    </div>
+                    <h2 className="text-2xl font-black text-red-900 mb-4">Gagal Mengirim Data</h2>
+                    <p className="text-slate-600 mb-8 leading-relaxed">
+                        Terjadi kendala koneksi atau server sedang sibuk. Mohon pastikan koneksi internet Anda stabil, lalu coba kirim ulang.
+                    </p>
+                    <button onClick={() => setSubmissionStatus('idle')} className="w-full py-4 rounded-2xl text-white bg-red-600 font-bold hover:bg-red-700 transition-colors">
+                        Coba Kirim Ulang
+                    </button>
                  </div>
             </div>
         );
