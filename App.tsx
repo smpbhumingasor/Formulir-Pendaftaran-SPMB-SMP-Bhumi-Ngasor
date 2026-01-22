@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { FormData, formSchema, baseFormSchema, FormErrors, Gender, ParentOccupation } from './types';
 import { validateStep } from './utils/validation';
@@ -9,8 +10,8 @@ import Stepper from './components/Stepper';
 
 const STEPS = ['Siswa', 'Orang Tua', 'Berkas', 'Selesai'];
 
-// URL Web App Google Apps Script Anda
-const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbz4LsO7HG6DrBdwWuKadU_lfsot5_9K2mlEu318LiOxpDafCgcOgoy7iTGlzZKsPErg/exec'; 
+// URL Web App Google Apps Script (PASTIKAN SUDAH DI-DEPLOY ULANG SETIAP ADA PERUBAHAN)
+const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbzM7b9j5JiDbCGecSbNszBV3ou5SzB0zxHJPsuTikJjtonz838K_Ntp2WYNFEdtQ6wl/exec'; 
 const LOGO_URL = 'https://github.com/smpbhumingasor/Formulir-Pendaftaran-SPMB-SMP-Bhumi-Ngasor/blob/161a2c73e9454d9f0046bae80d5f4dddc1553776/IMG-20260122-WA0025-removebg-preview.png?raw=true';
 
 const App: React.FC = () => {
@@ -44,8 +45,8 @@ const App: React.FC = () => {
     const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'success' | 'error' | 'server_error'>('idle');
     const [registrationId, setRegistrationId] = useState('');
 
-    // Kompresi Gambar ke ukuran yang sangat aman untuk Apps Script (~150KB per gambar)
-    const compressImage = (file: File, maxWidth = 600, quality = 0.4): Promise<string> => {
+    // Kompresi Gambar: Diperlukan agar payload tidak melebihi 10MB (Limit Google Apps Script)
+    const compressImage = (file: File, maxWidth = 800, quality = 0.5): Promise<string> => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -90,8 +91,8 @@ const App: React.FC = () => {
 
     const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, files } = e.target;
-        if (files?.[0] && files[0].size > 5 * 1024 * 1024) {
-            alert("Ukuran file terlalu besar! Gunakan file di bawah 5MB.");
+        if (files?.[0] && files[0].size > 10 * 1024 * 1024) {
+            alert("File terlalu besar! Maksimal 10MB.");
             return;
         }
         setFormData(prev => ({ ...prev, [name]: files?.[0] || null }));
@@ -113,14 +114,14 @@ const App: React.FC = () => {
         const result = formSchema.safeParse(formData);
         if (!result.success) {
             setErrors(result.error.flatten().fieldErrors as FormErrors);
-            setSubmissionStatus('error');
             return;
         }
 
         setIsSubmitting(true);
         try {
             const id = `AR-RIDHO-${Date.now().toString().slice(-6)}`;
-            // Buat payload bersih
+            
+            // Susun payload JSON yang akan dikirim
             const payload: any = {
                 fullName: formData.fullName,
                 nisn: formData.nisn,
@@ -147,15 +148,13 @@ const App: React.FC = () => {
                 }
             };
 
-            // Proses semua file secara paralel
+            // Proses semua dokumen pendukung
             await Promise.all([
                 processFile('kartuKeluarga', 'kartuKeluargaBase64', 'kartuKeluargaMime'),
                 processFile('aktaKelahiran', 'aktaKelahiranBase64', 'aktaKelahiranMime'),
                 processFile('ktpWalimurid', 'ktpWalimuridBase64', 'ktpWalimuridMime'),
                 processFile('pasFoto', 'pasFotoBase64', 'pasFotoMime'),
             ]);
-
-            console.log("Mengirim data ke server...");
 
             // Kirim ke Google Apps Script
             await fetch(GOOGLE_SHEET_URL, {
@@ -165,13 +164,13 @@ const App: React.FC = () => {
                 body: JSON.stringify(payload)
             });
 
-            // Tunggu 5 detik untuk memberi waktu Google memproses Drive
-            await new Promise(r => setTimeout(r, 5000));
+            // Beri waktu delay agar server Google sempat memproses file ke Drive
+            await new Promise(r => setTimeout(r, 6000));
 
             setRegistrationId(id);
             setSubmissionStatus('success');
         } catch (err) {
-            console.error("Critical Error:", err);
+            console.error("Submission failed:", err);
             setSubmissionStatus('server_error');
         } finally {
             setIsSubmitting(false);
@@ -245,8 +244,8 @@ const App: React.FC = () => {
                 <div className="fixed inset-0 bg-white/95 backdrop-blur-md z-[100] flex flex-col items-center justify-center">
                     <div className="w-16 h-16 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin mb-6"></div>
                     <p className="text-emerald-800 font-black uppercase tracking-widest text-sm text-center">
-                        Sedang Mengirim & Menyimpan Data...<br/>
-                        <span className="text-[10px] font-normal normal-case text-slate-500">Mohon jangan tutup atau pindah halaman (est. 10-20 detik).</span>
+                        Sedang Mengirim & Mengunggah...<br/>
+                        <span className="text-[10px] font-normal normal-case text-slate-500 italic">Mohon tunggu 10-20 detik, sistem sedang memproses dokumen Anda.</span>
                     </p>
                 </div>
             )}
