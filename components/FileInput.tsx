@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 
 interface FileInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -5,9 +6,10 @@ interface FileInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     error?: string | string[];
     file: File | null;
     showPreview?: boolean;
+    onClear?: () => void;
 }
 
-const FileInput: React.FC<FileInputProps> = ({ label, id, error, file, showPreview, ...props }) => {
+const FileInput: React.FC<FileInputProps> = ({ label, id, error, file, showPreview, onClear, ...props }) => {
     const [preview, setPreview] = useState<string | null>(null);
     const errorMsg = Array.isArray(error) ? error[0] : error;
 
@@ -28,7 +30,20 @@ const FileInput: React.FC<FileInputProps> = ({ label, id, error, file, showPrevi
             <label htmlFor={id} className="block text-sm font-bold text-slate-700 mb-2">
                 {label} {props.required && <span className="text-red-500">*</span>}
             </label>
-            <div className={`mt-1 flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-2xl transition-all ${file ? 'border-primary-400 bg-primary-50' : errorMsg ? 'border-red-300 bg-red-50' : 'border-slate-200 hover:border-primary-300'}`}>
+            <div className={`mt-1 relative flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-2xl transition-all ${file ? 'border-primary-400 bg-primary-50' : errorMsg ? 'border-red-300 bg-red-50' : 'border-slate-200 hover:border-primary-300'}`}>
+                
+                {/* Remove Button */}
+                {file && onClear && (
+                    <button 
+                        type="button" 
+                        onClick={(e) => { e.preventDefault(); onClear(); }}
+                        className="absolute top-2 right-2 p-1 bg-white text-red-500 rounded-full shadow-sm hover:bg-red-50 border border-slate-200 z-10 transition-colors"
+                        title="Hapus File"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                )}
+
                 {preview ? (
                     <div className="relative mb-3">
                         <img src={preview} alt="Preview" className="w-24 h-24 rounded-xl object-cover shadow-md border-2 border-white" />
@@ -46,16 +61,26 @@ const FileInput: React.FC<FileInputProps> = ({ label, id, error, file, showPrevi
                     </div>
                 )}
                 
+                {file && !preview && (
+                    <div className="mb-2 bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center gap-2">
+                        <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        <div className="text-left">
+                            <p className="text-xs font-bold text-slate-700 truncate max-w-[120px]">{file.name}</p>
+                            <p className="text-[10px] text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                        </div>
+                    </div>
+                )}
+                
                 <div className="text-center">
                     <label htmlFor={id} className="cursor-pointer">
-                        <span className="text-sm font-bold text-primary-600 hover:text-primary-700 transition-colors">
-                            {file ? 'Ganti File' : 'Klik untuk Unggah'}
-                        </span>
+                        {!file && <span className="text-sm font-bold text-primary-600 hover:text-primary-700 transition-colors">
+                             Klik untuk Unggah
+                        </span>}
                         <input id={id} type="file" className="sr-only" {...props} />
                     </label>
-                    <p className="mt-1 text-xs text-slate-500 truncate max-w-[200px] mx-auto">
-                        {file ? file.name : 'Format PDF/JPG (Maks 2MB)'}
-                    </p>
+                    {!file && <p className="mt-1 text-xs text-slate-500 truncate max-w-[200px] mx-auto">
+                        Format PDF/JPG (Maks 2MB)
+                    </p>}
                 </div>
             </div>
             {errorMsg && <p className="mt-2 text-xs font-semibold text-red-600" id={`${id}-error`}>{errorMsg}</p>}

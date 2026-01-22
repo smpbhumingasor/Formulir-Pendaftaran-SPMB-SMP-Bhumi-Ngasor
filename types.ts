@@ -1,3 +1,4 @@
+
 import { z } from 'zod';
 
 // --- Constants for Validation ---
@@ -37,6 +38,9 @@ export enum ParentOccupation {
 
 // --- Zod Schema ---
 export const baseFormSchema = z.object({
+    // Security Field (Honeypot) - Should be empty
+    botField: z.string().optional(),
+
     // Step 1: Student Data
     fullName: z.string().min(1, 'Nama lengkap wajib diisi'),
     birthPlace: z.string().min(1, 'Tempat lahir wajib diisi'),

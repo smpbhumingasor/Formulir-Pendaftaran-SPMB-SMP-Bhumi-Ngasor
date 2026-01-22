@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { FormData, FormErrors, Gender } from '../../types';
 import Input from '../Input';
@@ -12,6 +13,11 @@ interface Props {
 }
 
 const StudentDataSection: React.FC<Props> = ({ formData, errors, handleChange, handleBlur }) => {
+    // Hitung tahun maksimal (misal: minimal umur 10 tahun untuk masuk SMP)
+    const maxDate = new Date();
+    maxDate.setFullYear(maxDate.getFullYear() - 9);
+    const maxDateString = maxDate.toISOString().split('T')[0];
+
     return (
         <div className="space-y-8">
             <div className="border-l-4 border-primary-500 pl-4 py-1">
@@ -29,7 +35,18 @@ const StudentDataSection: React.FC<Props> = ({ formData, errors, handleChange, h
                 </div>
                 
                 <div className="sm:col-span-3">
-                    <Input label="Tanggal Lahir" id="birthDate" name="birthDate" type="date" value={formData.birthDate} onChange={handleChange} onBlur={handleBlur} error={errors.birthDate} required />
+                    <Input 
+                        label="Tanggal Lahir" 
+                        id="birthDate" 
+                        name="birthDate" 
+                        type="date" 
+                        max={maxDateString}
+                        value={formData.birthDate} 
+                        onChange={handleChange} 
+                        onBlur={handleBlur} 
+                        error={errors.birthDate} 
+                        required 
+                    />
                 </div>
 
                 <div className="sm:col-span-3">

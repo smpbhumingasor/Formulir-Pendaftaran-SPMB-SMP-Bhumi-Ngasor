@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { FormData, FormErrors } from '../../types';
 import FileInput from '../FileInput';
@@ -6,9 +7,10 @@ interface Props {
     formData: FormData;
     errors: FormErrors;
     handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    handleFileClear: (name: keyof FormData) => void;
 }
 
-const DocumentUploadSection: React.FC<Props> = ({ formData, errors, handleFileChange }) => {
+const DocumentUploadSection: React.FC<Props> = ({ formData, errors, handleFileChange, handleFileClear }) => {
     return (
         <div className="space-y-8">
             <div className="border-l-4 border-emerald-500 pl-4 py-1">
@@ -23,6 +25,7 @@ const DocumentUploadSection: React.FC<Props> = ({ formData, errors, handleFileCh
                         id="kartuKeluarga" 
                         name="kartuKeluarga" 
                         onChange={handleFileChange} 
+                        onClear={() => handleFileClear('kartuKeluarga')}
                         error={errors.kartuKeluarga} 
                         required 
                         accept="image/*,.pdf" 
@@ -35,6 +38,7 @@ const DocumentUploadSection: React.FC<Props> = ({ formData, errors, handleFileCh
                         id="aktaKelahiran" 
                         name="aktaKelahiran" 
                         onChange={handleFileChange} 
+                        onClear={() => handleFileClear('aktaKelahiran')}
                         error={errors.aktaKelahiran} 
                         required 
                         accept="image/*,.pdf" 
@@ -47,6 +51,7 @@ const DocumentUploadSection: React.FC<Props> = ({ formData, errors, handleFileCh
                         id="ktpWalimurid" 
                         name="ktpWalimurid" 
                         onChange={handleFileChange} 
+                        onClear={() => handleFileClear('ktpWalimurid')}
                         error={errors.ktpWalimurid} 
                         required 
                         accept="image/*,.pdf" 
@@ -59,6 +64,7 @@ const DocumentUploadSection: React.FC<Props> = ({ formData, errors, handleFileCh
                         id="pasFoto" 
                         name="pasFoto" 
                         onChange={handleFileChange} 
+                        onClear={() => handleFileClear('pasFoto')}
                         error={errors.pasFoto} 
                         required 
                         accept="image/*" 
