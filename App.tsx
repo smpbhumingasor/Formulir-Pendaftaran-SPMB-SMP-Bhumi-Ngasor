@@ -1,5 +1,4 @@
-
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { FormData, formSchema, baseFormSchema, FormErrors, Gender, ParentOccupation } from './types';
 import { validateStep } from './utils/validation';
 import StudentDataSection from './components/sections/StudentDataSection';
@@ -10,8 +9,8 @@ import Stepper from './components/Stepper';
 
 const STEPS = ['Siswa', 'Orang Tua', 'Berkas', 'Selesai'];
 
-// URL Web App Google Apps Script Anda (PASTIKAN SUDAH DI-DEPLOY SEBAGAI "ANYONE")
-const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbx735fxNxtpWrxZVVXqYqkyPTmKA8CIpSUnserp_nxvLcvCOW-5Yj55mGFRID9Ttxg5/exec'; 
+// URL Web App Google Apps Script Anda
+const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbz4LsO7HG6DrBdwWuKadU_lfsot5_9K2mlEu318LiOxpDafCgcOgoy7iTGlzZKsPErg/exec'; 
 const LOGO_URL = 'https://github.com/smpbhumingasor/Formulir-Pendaftaran-SPMB-SMP-Bhumi-Ngasor/blob/161a2c73e9454d9f0046bae80d5f4dddc1553776/IMG-20260122-WA0025-removebg-preview.png?raw=true';
 
 const App: React.FC = () => {
@@ -45,8 +44,8 @@ const App: React.FC = () => {
     const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'success' | 'error' | 'server_error'>('idle');
     const [registrationId, setRegistrationId] = useState('');
 
-    // Kompresi gambar agar tidak melebihi 10MB limit Google Apps Script
-    const compressImage = (file: File, maxWidth = 1000, quality = 0.6): Promise<string> => {
+    // Kompresi Gambar ke ukuran yang sangat aman untuk Apps Script (~150KB per gambar)
+    const compressImage = (file: File, maxWidth = 600, quality = 0.4): Promise<string> => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -91,6 +90,10 @@ const App: React.FC = () => {
 
     const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, files } = e.target;
+        if (files?.[0] && files[0].size > 5 * 1024 * 1024) {
+            alert("Ukuran file terlalu besar! Gunakan file di bawah 5MB.");
+            return;
+        }
         setFormData(prev => ({ ...prev, [name]: files?.[0] || null }));
     }, []);
 
@@ -117,10 +120,22 @@ const App: React.FC = () => {
         setIsSubmitting(true);
         try {
             const id = `AR-RIDHO-${Date.now().toString().slice(-6)}`;
-            // Payload disesuaikan tepat dengan variabel di AppScript Anda
-            const payload: any = { ...formData, regId: id };
+            // Buat payload bersih
+            const payload: any = {
+                fullName: formData.fullName,
+                nisn: formData.nisn,
+                gender: formData.gender,
+                birthPlace: formData.birthPlace,
+                birthDate: formData.birthDate,
+                previousSchool: formData.previousSchool,
+                fatherName: formData.fatherName,
+                motherName: formData.motherName,
+                parentWaNumber: formData.parentWaNumber,
+                address: formData.address,
+                regId: id
+            };
 
-            const process = async (field: keyof FormData, base64Key: string, mimeKey: string) => {
+            const processFile = async (field: keyof FormData, base64Key: string, mimeKey: string) => {
                 const file = formData[field] as File;
                 if (file) {
                     if (file.type.startsWith('image/')) {
@@ -132,31 +147,31 @@ const App: React.FC = () => {
                 }
             };
 
-            // Nama key harus sama dengan di AppScript: data.kartuKeluargaBase64, dsb.
+            // Proses semua file secara paralel
             await Promise.all([
-                process('kartuKeluarga', 'kartuKeluargaBase64', 'kartuKeluargaMime'),
-                process('aktaKelahiran', 'aktaKelahiranBase64', 'aktaKelahiranMime'),
-                process('ktpWalimurid', 'ktpWalimuridBase64', 'ktpWalimuridMime'),
-                process('pasFoto', 'pasFotoBase64', 'pasFotoMime'),
+                processFile('kartuKeluarga', 'kartuKeluargaBase64', 'kartuKeluargaMime'),
+                processFile('aktaKelahiran', 'aktaKelahiranBase64', 'aktaKelahiranMime'),
+                processFile('ktpWalimurid', 'ktpWalimuridBase64', 'ktpWalimuridMime'),
+                processFile('pasFoto', 'pasFotoBase64', 'pasFotoMime'),
             ]);
 
-            // Hapus file mentah sebelum JSON.stringify
-            delete payload.kartuKeluarga; delete payload.aktaKelahiran; 
-            delete payload.ktpWalimurid; delete payload.pasFoto;
+            console.log("Mengirim data ke server...");
 
-            // KIRIM SEBAGAI JSON (Sesuai dengan JSON.parse di AppScript)
+            // Kirim ke Google Apps Script
             await fetch(GOOGLE_SHEET_URL, {
                 method: 'POST',
-                mode: 'no-cors', 
-                headers: { 'Content-Type': 'text/plain' }, // Gunakan text/plain untuk menghindari pre-flight CORS
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify(payload)
             });
 
-            await new Promise(r => setTimeout(r, 1500));
+            // Tunggu 5 detik untuk memberi waktu Google memproses Drive
+            await new Promise(r => setTimeout(r, 5000));
+
             setRegistrationId(id);
             setSubmissionStatus('success');
         } catch (err) {
-            console.error(err);
+            console.error("Critical Error:", err);
             setSubmissionStatus('server_error');
         } finally {
             setIsSubmitting(false);
@@ -169,7 +184,6 @@ const App: React.FC = () => {
         if (success) { setCurrentStep(prev => prev + 1); window.scrollTo(0, 0); }
     };
 
-    // Fix: Added missing handlePrev function to navigate to the previous step.
     const handlePrev = () => {
         setCurrentStep(prev => Math.max(1, prev - 1));
         window.scrollTo(0, 0);
@@ -211,7 +225,7 @@ const App: React.FC = () => {
             <div className="min-h-screen bg-emerald-50/30 flex flex-col justify-center items-center p-6">
                  <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-xl border border-emerald-100 text-center">
                     <h2 className="text-3xl font-black text-emerald-900 mb-4">Pendaftaran Berhasil!</h2>
-                    <p className="text-slate-600 mb-8 leading-relaxed italic">Data {formData.fullName} telah berhasil dikirim ke server panitia.</p>
+                    <p className="text-slate-600 mb-8 leading-relaxed italic">Data <span className="font-bold uppercase">{formData.fullName}</span> telah berhasil dikirim ke server panitia.</p>
                     <div className="bg-slate-50 rounded-3xl p-6 mb-8 text-left border border-slate-200">
                         <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">ID Pendaftaran</p>
                         <p className="text-3xl font-mono font-black text-emerald-700">{registrationId}</p>
@@ -228,9 +242,12 @@ const App: React.FC = () => {
     return (
         <div className="min-h-screen bg-slate-50 py-12 px-4 relative">
             {isSubmitting && (
-                <div className="fixed inset-0 bg-white/90 backdrop-blur-md z-[100] flex flex-col items-center justify-center">
+                <div className="fixed inset-0 bg-white/95 backdrop-blur-md z-[100] flex flex-col items-center justify-center">
                     <div className="w-16 h-16 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin mb-6"></div>
-                    <p className="text-emerald-800 font-black uppercase tracking-widest text-sm text-center">Sedang Memproses & Mengunggah...<br/><span className="text-[10px] font-normal normal-case text-slate-400">Mohon tunggu sebentar.</span></p>
+                    <p className="text-emerald-800 font-black uppercase tracking-widest text-sm text-center">
+                        Sedang Mengirim & Menyimpan Data...<br/>
+                        <span className="text-[10px] font-normal normal-case text-slate-500">Mohon jangan tutup atau pindah halaman (est. 10-20 detik).</span>
+                    </p>
                 </div>
             )}
             <div className="max-w-4xl mx-auto">
